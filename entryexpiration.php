@@ -4,7 +4,7 @@
 	Plugin Name: Gravity Forms Entry Expiration
 	Plugin URI: http://github.com/travislopes/Gravity-Forms-Entry-Expiration
 	Description: Provides a simple way to remove old entries in Gravity Forms.
-	Version: 1.0.0
+	Version: 1.1.0
 	Author: travislopes
 	Author URI: http://travislop.es
 	Text Domain: gravityformsentryexpiration
@@ -17,7 +17,7 @@
 		
 		class GFEntryExpiration extends GFAddOn {
 		
-			protected $_version = '1.0.0';
+			protected $_version = '1.1.0';
 			protected $_min_gravityforms_version = '1.8.17';
 			protected $_slug = 'gravityformsentryexpiration';
 			protected $_path = 'gravityformsentryexpiration/entryexpiration.php';
@@ -116,15 +116,15 @@
 			// Form settings page
 			public function add_form_setting( $settings, $form ) {
 				
-	            $settings['Form Options']['gf_entryexpiration_exclude'] = '
+	            $settings['Form Options']['gf_entryexpiration_include'] = '
 		        <tr>
 		            <th>
-		            	<label for="gf_entryexpiration_exclude">'. __( 'Entry expiration', 'gravityformsentryexpiration' ) .'</label>
-		            	<a href="#" onclick="return false;" class="gf_tooltip tooltip tooltip_form_honeypot" title="'. __( '<h6>Exclude Entries From Deletion</h6> Selecting this checkbox will exclude this form\'s entries from being deleted when all old entries are deleted.', 'gravityformsentryexpiration' ) .'"><i class="fa fa-question-circle"></i></a>
+		            	<label for="gf_entryexpiration_include">'. __( 'Entry expiration', 'gravityformsentryexpiration' ) .'</label>
+		            	<a href="#" onclick="return false;" class="gf_tooltip tooltip tooltip_form_honeypot" title="'. __( '<h6>Include Entries In Deletion</h6> Selecting this checkbox will include this form\'s entries in being deleted when all old entries are deleted.', 'gravityformsentryexpiration' ) .'"><i class="fa fa-question-circle"></i></a>
 		            </th>
 		            <td>
-		            	<input type="checkbox" id="gf_entryexpiration_exclude" name="gf_entryexpiration_exclude" value="1"'. ( ( rgar( $form, 'gf_entryexpiration_exclude' ) == '1' ) ? ' checked="checked"' : '' ) .' />
-		            	<label for="gf_entryexpiration_exclude">'. __( 'Exclude from entry expiration', 'gravityformsentryexpiration' ) .'</labe>
+		            	<input type="checkbox" id="gf_entryexpiration_include" name="gf_entryexpiration_include" value="1"'. ( ( rgar( $form, 'gf_entryexpiration_include' ) == '1' ) ? ' checked="checked"' : '' ) .' />
+		            	<label for="gf_entryexpiration_include">'. __( 'Include in entry expiration', 'gravityformsentryexpiration' ) .'</labe>
 		            </td>
 		        </tr>';
 
@@ -133,7 +133,7 @@
 			
 			// Save form settings
 			public function save_form_setting( $form ) {
-				$form['gf_entryexpiration_exclude'] = rgpost( 'gf_entryexpiration_exclude' );
+				$form['gf_entryexpiration_include'] = rgpost( 'gf_entryexpiration_include' );
 				return $form;
 			}
 			
@@ -152,12 +152,12 @@
 				// Loop through each form
 				$forms = GFFormsModel::get_form_ids();
 				foreach ( $forms as &$form ) {
-					
+		
 					// Get form meta
 					$form = GFFormsModel::get_form_meta( $form );
 					
-					// Execute if form is not excluded from entries
-					if ( empty ( $form['gf_entryexpiration_exclude'] ) ) {
+					// Execute if form is included from entries
+					if ( empty ( $form['gf_entryexpiration_include'] ) ) {
 					
 						// Get entries for form
 						$form_entries = GFFormsModel::get_lead_ids(
@@ -168,7 +168,7 @@
 							null, // $start_date
 							$older_than, // $end_date
 							null, // $status
-							null // $payment_status
+							apply_filters( 'gf_entryexpiration_payment_' . $form['id'], apply_filters( 'gf_entryexpiration_payment', null, $form ), $form ) // $payment_status
 						);
 						
 						foreach ( $form_entries as $form_entry ) {
@@ -177,21 +177,78 @@
 					
 					}
 				}
-								
+				
+				// Limit amount of entries to be deleted in this pass to avoid long execution times.
+				$entry_ids = array_splice( $entry_ids, 0, apply_filters( 'gf_entryexpiration_limit', 1000 ) );
+				
 				// Delete the entries
-				if( !empty ( $entry_ids ) ) 
+				if( ! empty ( $entry_ids ) ) 
 					GFFormsModel::delete_leads( $entry_ids );
 
 			}
 			
-			// Create entry deletion cron
-			public function create_cron() {
-				wp_schedule_event( strtotime( 'midnight' ), 'daily', 'gf_entryexpiration_delete_old_entries' );
+			// Run needed functions for activation
+			public function run_activation_routine() {
+				
+				global $wpdb;
+				
+				/* Get previously installed version */
+				$previous_version = get_option( 'gf_entryexpiration_version' );
+				
+				/* If existing scheduled event exists and is daily, remove for switch to hourly. */
+				if ( wp_get_schedule( 'gf_entryexpiration_delete_old_entries' ) === 'daily' )
+					wp_clear_scheduled_hook( 'gf_entryexpiration_delete_old_entries' );
+				
+				/* Register cron */
+				wp_schedule_event( strtotime( 'midnight' ), 'hourly', 'gf_entryexpiration_delete_old_entries' );
+			
+				/* Upgrade: 1.1 */
+				if ( $previous_version < '1.1.0' ) {
+					
+					/* Get the current Gravity Forms */
+					$forms = GFFormsModel::get_form_ids();
+					$meta_table_name = GFFormsModel::get_meta_table_name();
+					
+					/* Loop through each form and switch to include setting where needed */
+					foreach ( $forms as $form_id ) {
+
+						/* Get form display meta. */
+						$form_meta = $wpdb->get_var( $wpdb->prepare( "SELECT display_meta FROM {$meta_table_name} WHERE form_id=%d", $form_id ) );
+
+						/* Decode JSON string */
+						$form_meta = json_decode( $form_meta, true );
+
+						/* If exclude is set, delete meta. */
+						if ( ! empty ( $form_meta['gf_entryexpiration_exclude'] ) ) {
+						
+							unset( $form_meta['gf_entryexpiration_exclude'] );
+						
+						/* If exclude is not set, set to include. */
+						
+						} else {
+							
+							$form_meta['gf_entryexpiration_include'] = '1';
+							
+						}
+						
+						/* Update form meta. */
+						$wpdb->query( $wpdb->prepare( "UPDATE $meta_table_name SET display_meta=%s WHERE form_id=%d", json_encode( $form_meta), $form_id ) );
+
+					}
+					
+				}
+				
+				/* Set current version */
+				update_option( 'gf_entryexpiration_version', '1.1.0' );
+			
 			}
 			
-			// Remove entry deletion cron
-			public function remove_cron() {
+			// Run needed functions for deactivation
+			public function run_deactivation_routine() {
+				
 				wp_clear_scheduled_hook( 'gf_entryexpiration_delete_old_entries' );
+				delete_option( 'gf_entryexpiration_version' );
+			
 			}
 			
 		}
@@ -202,8 +259,8 @@
 	}
 	
 	// Activation hooks
-	register_activation_hook( __FILE__, array( 'GFEntryExpiration', 'create_cron' ) );
-	register_deactivation_hook( __FILE__, array( 'GFEntryExpiration', 'remove_cron' ) );
+	register_activation_hook( __FILE__, array( 'GFEntryExpiration', 'run_activation_routine' ) );
+	register_deactivation_hook( __FILE__, array( 'GFEntryExpiration', 'run_deactivation_routine' ) );
 	
 	// Register cron action
 	add_action( 'gf_entryexpiration_delete_old_entries', 'gf_entryexpiration_delete_old_entries_action' );

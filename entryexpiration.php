@@ -2,9 +2,9 @@
 	
 	/*
 	Plugin Name: Gravity Forms Entry Expiration
-	Plugin URI: http://github.com/travislopes/Gravity-Forms-Entry-Expiration
+	Plugin URI: http://travislop.es/plugins/gravity-forms-entry-expiration/
 	Description: Provides a simple way to remove old entries in Gravity Forms.
-	Version: 1.1.0
+	Version: 1.2.0
 	Author: travislopes
 	Author URI: http://travislop.es
 	Text Domain: gravityformsentryexpiration
@@ -17,7 +17,7 @@
 		
 		class GFEntryExpiration extends GFAddOn {
 		
-			protected $_version = '1.1.0';
+			protected $_version = '1.2.0';
 			protected $_min_gravityforms_version = '1.8.17';
 			protected $_slug = 'gravityformsentryexpiration';
 			protected $_path = 'gravityformsentryexpiration/entryexpiration.php';
@@ -25,6 +25,8 @@
 			protected $_url = 'http://github.com/travislopes/Gravity-Forms-Entry-Expiration';
 			protected $_title = 'Gravity Forms Entry Expiration';
 			protected $_short_title = 'Entry Expiration';
+			
+			protected $expiration_time_types = array( 'hours', 'days', 'weeks', 'months' );
 		
 			private static $_instance = null;
 		
@@ -48,14 +50,17 @@
 				return array(
 					array(
 						'title'			=> '',
-						'description'	=> __( '<p>Gravity Forms Entry Cleaner examines your entries every night at midnight and deletes any entries older than the timeframe designated below.</p>', 'gravityformsentryexpiration' ),
+						'description'	=> __( '<p>Gravity Forms Entry Cleaner examines your entries every hour and deletes any entries older than the timeframe designated below.</p>', 'gravityformsentryexpiration' ),
 						'fields'		=> array(
 							array(
-								'name'		    => 'gf_entryexpiration_days_old',
+								'name'		    => 'gf_entryexpiration_expire_time',
 								'label'		    => __( 'Delete Entries After', 'gravityformsentryexpiration' ),
-								'type'		    => 'numeric',
+								'type'		    => 'expiration_time',
 								'class'         => 'small',
-								'after_input'   => 'days',
+								'default_value' => array(
+									'amount'		=>	30,
+									'type'			=>	'days'
+								),
 							),
 							array(
 								'type'		=> 'save',
@@ -112,6 +117,54 @@
 		
 				return $html;
 			}
+
+			// Expiration time field type
+			protected function settings_expiration_time( $field, $echo = true ) {
+		
+				$field['type'] = 'text'; //making sure type is set to text
+				$attributes    = $this->get_field_attributes( $field );
+				$default_value = rgar( $field, 'value' ) ? rgar( $field, 'value' ) : rgar( $field, 'default_value' );
+				$value         = $this->get_setting( $field['name'], $default_value );
+		
+				$name    = esc_attr( $field['name'] );
+				$tooltip = isset( $choice['tooltip'] ) ? gform_tooltip( $choice['tooltip'], rgar( $choice, 'tooltip_class' ), true ) : '';
+				$html    = '';
+		
+				/* Add amount field */
+				$html .= '<input type="number" name="_gaddon_setting_' . esc_attr( $field['name'] ) . '[amount]" value="' . esc_attr( $value['amount'] ) . '" ' . implode( ' ', $attributes ) . ' />';
+				
+				/* Add type field */
+				$html .= '<select name="_gaddon_setting_' . esc_attr( $field['name'] ) . '[type]" ' . implode( ' ', $attributes ) . ' />';
+				
+				foreach( $this->expiration_time_types as $type ) {
+					
+					$html .= '<option value="'. $type .'" '. selected( $type, $value['type'], false ) .'>'. $type .'</option>';
+					
+				}
+				
+				$html .= '</select>';
+							
+				$feedback_callback = rgar( $field, 'feedback_callback' );
+				if ( is_callable( $feedback_callback ) ) {
+					$is_valid = call_user_func_array( $feedback_callback, array( $value, $field ) );
+					$icon     = '';
+					if ( $is_valid === true )
+						$icon = 'icon-check fa-check gf_valid'; // check icon
+					else if ( $is_valid === false )
+						$icon = 'icon-remove fa-times gf_invalid'; // x icon
+		
+					if ( ! empty( $icon ) )
+						$html .= "&nbsp;&nbsp;<i class=\"fa {$icon}\"></i>";
+				}
+		
+				if ( $this->field_failed_validation( $field ) )
+					$html .= $this->get_error_icon( $field );
+		
+				if ( $echo )
+					echo $html;
+		
+				return $html;
+			}
 		
 			// Form settings page
 			public function add_form_setting( $settings, $form ) {
@@ -140,11 +193,17 @@
 			// Delete old entries
 			public function delete_old_entries() {
 				
+				/* Get plugin settings */
 				$plugin_settings = get_option( 'gravityformsaddon_gravityformsentryexpiration_settings' );
-				if ( empty ( $plugin_settings['gf_entryexpiration_days_old'] ) ) return;
+				
+				/* If plugin has not been configured yet, do not delete any entries. */
+				if ( empty ( $plugin_settings['gf_entryexpiration_expire_time'] ) ) return;
 			
+				/* Create expiration time string */
+				$expiration_time = $plugin_settings['gf_entryexpiration_expire_time']['amount'] . ' ' . $plugin_settings['gf_entryexpiration_expire_time']['type'];
+
 				// Setup MySQL timestamp for which entries are older than
-				$older_than = date( 'Y-m-d H:i:s', strtotime( 'midnight -'. $plugin_settings['gf_entryexpiration_days_old'] .' days' ) );
+				$older_than = date( 'Y-m-d H:i:s', strtotime( 'midnight -'. $expiration_time ) );
 				
 				// Setup empty array of entries to delete
 				$entry_ids = array();
@@ -193,17 +252,28 @@
 				global $wpdb;
 				
 				/* Get previously installed version */
-				$previous_version = get_option( 'gf_entryexpiration_version' );
+				$previous_version = get_option( 'gf_entryexpiration_version', '1.0.0' );
+				
+				/* Get plugin settings */
+				$plugin_settings = get_option( 'gravityformsaddon_gravityformsentryexpiration_settings' );				
 				
 				/* If existing scheduled event exists and is daily, remove for switch to hourly. */
-				if ( wp_get_schedule( 'gf_entryexpiration_delete_old_entries' ) === 'daily' )
+				if ( wp_get_schedule( 'gf_entryexpiration_delete_old_entries' ) === 'daily' ) {
+					
+					$was_scheduled = true;
 					wp_clear_scheduled_hook( 'gf_entryexpiration_delete_old_entries' );
+					
+				} else {
+					
+					$was_scheduled = false;
+					
+				}
 				
 				/* Register cron */
 				wp_schedule_event( strtotime( 'midnight' ), 'hourly', 'gf_entryexpiration_delete_old_entries' );
 			
-				/* Upgrade: 1.1 */
-				if ( $previous_version < '1.1.0' ) {
+				/* Upgrade: 1.1.0 */
+				if ( version_compare( $previous_version, '1.1.0', '<' ) && $was_scheduled ) {
 					
 					/* Get the current Gravity Forms */
 					$forms = GFFormsModel::get_form_ids();
@@ -237,9 +307,26 @@
 					}
 					
 				}
+
+				/* Upgrade: 1.2.0 */
+				if ( ! empty( $plugin_settings['gf_entryexpiration_days_old'] ) ) {
+					
+					/* Change settings from "days" to allow hours, days, weeks and months. */
+					$plugin_settings['gf_entryexpiration_expire_time'] = array(
+						'amount'	=>	$plugin_settings['gf_entryexpiration_days_old'],
+						'type'		=>	'days'
+					);
+					
+					/* Remove days old setting */
+					unset( $plugin_settings['gf_entryexpiration_days_old'] );
+					
+					/* Save settings */
+					update_option( 'gravityformsaddon_gravityformsentryexpiration_settings', $plugin_settings );
+										
+				}
 				
 				/* Set current version */
-				update_option( 'gf_entryexpiration_version', '1.1.0' );
+				update_option( 'gf_entryexpiration_version', '1.1.1' );
 			
 			}
 			
@@ -247,7 +334,6 @@
 			public function run_deactivation_routine() {
 				
 				wp_clear_scheduled_hook( 'gf_entryexpiration_delete_old_entries' );
-				delete_option( 'gf_entryexpiration_version' );
 			
 			}
 			
@@ -268,3 +354,4 @@
 		if ( class_exists( 'GFEntryExpiration' ) )
 			GFEntryExpiration::delete_old_entries();
 	}
+	

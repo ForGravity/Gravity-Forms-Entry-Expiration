@@ -23,6 +23,9 @@ This WordPress plugin allows you to automatically delete Gravity Forms entries o
 1. Navigate to the Form Settings page for each form you want to have entries automatically expire and include them in the expiration process.
 
 == Changelog ==
+= v1.2.0 = 
+* Fixed update routine to not automatically enable forms for processing if running a fresh install
+* Changed expiration time setting to allow choosing between hours, days, weeks and months
 = v1.1.0 =
 * Switched forms from being able to be excluded to having to include them for processing
 * Deletion cron now runs hourly instead of daily

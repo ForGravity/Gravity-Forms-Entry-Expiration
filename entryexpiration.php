@@ -219,7 +219,7 @@
 					$form = GFFormsModel::get_form_meta( $form );
 					
 					// Execute if form is included from entries
-					if ( empty ( $form['gf_entryexpiration_include'] ) ) {
+					if ( ! empty ( $form['gf_entryexpiration_include'] ) ) {
 					
 						// Get entries for form
 						$form_entries = GFFormsModel::get_lead_ids(

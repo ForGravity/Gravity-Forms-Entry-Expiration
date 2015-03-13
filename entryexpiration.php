@@ -4,7 +4,7 @@
 	Plugin Name: Gravity Forms Entry Expiration
 	Plugin URI: http://travislop.es/plugins/gravity-forms-entry-expiration/
 	Description: Provides a simple way to remove old entries in Gravity Forms.
-	Version: 1.2.0
+	Version: 1.2.1
 	Author: travislopes
 	Author URI: http://travislop.es
 	Text Domain: gravityformsentryexpiration
@@ -17,7 +17,7 @@
 		
 		class GFEntryExpiration extends GFAddOn {
 		
-			protected $_version = '1.2.0';
+			protected $_version = '1.2.1';
 			protected $_min_gravityforms_version = '1.8.17';
 			protected $_slug = 'gravityformsentryexpiration';
 			protected $_path = 'gravityformsentryexpiration/entryexpiration.php';
@@ -169,25 +169,28 @@
 			// Form settings page
 			public function add_form_setting( $settings, $form ) {
 				
-	            $settings['Form Options']['gf_entryexpiration_include'] = '
-		        <tr>
-		            <th>
-		            	<label for="gf_entryexpiration_include">'. __( 'Entry expiration', 'gravityformsentryexpiration' ) .'</label>
-		            	<a href="#" onclick="return false;" class="gf_tooltip tooltip tooltip_form_honeypot" title="'. __( '<h6>Include Entries In Deletion</h6> Selecting this checkbox will include this form\'s entries in being deleted when all old entries are deleted.', 'gravityformsentryexpiration' ) .'"><i class="fa fa-question-circle"></i></a>
-		            </th>
-		            <td>
-		            	<input type="checkbox" id="gf_entryexpiration_include" name="gf_entryexpiration_include" value="1"'. ( ( rgar( $form, 'gf_entryexpiration_include' ) == '1' ) ? ' checked="checked"' : '' ) .' />
-		            	<label for="gf_entryexpiration_include">'. __( 'Include in entry expiration', 'gravityformsentryexpiration' ) .'</labe>
-		            </td>
-		        </tr>';
-
-	            return $settings;
+				$settings['Form Options']['gf_entryexpiration_include'] = '
+				<tr>
+					<th>
+						<label for="gf_entryexpiration_include">'. __( 'Entry expiration', 'gravityformsentryexpiration' ) .'</label>
+						<a href="#" onclick="return false;" class="gf_tooltip tooltip tooltip_form_honeypot" title="'. __( '<h6>Include Entries In Deletion</h6> Selecting this checkbox will include this form\'s entries in being deleted when all old entries are deleted.', 'gravityformsentryexpiration' ) .'"><i class="fa fa-question-circle"></i></a>
+					</th>
+					<td>
+						<input type="checkbox" id="gf_entryexpiration_include" name="gf_entryexpiration_include" value="1"'. ( ( rgar( $form, 'gf_entryexpiration_include' ) == '1' ) ? ' checked="checked"' : '' ) .' />
+						<label for="gf_entryexpiration_include">'. __( 'Include in entry expiration', 'gravityformsentryexpiration' ) .'</labe>
+					</td>
+				</tr>';
+				
+				return $settings;
+				
 			}
 			
 			// Save form settings
 			public function save_form_setting( $form ) {
+				
 				$form['gf_entryexpiration_include'] = rgpost( 'gf_entryexpiration_include' );
 				return $form;
+				
 			}
 			
 			// Delete old entries
@@ -203,7 +206,7 @@
 				$expiration_time = $plugin_settings['gf_entryexpiration_expire_time']['amount'] . ' ' . $plugin_settings['gf_entryexpiration_expire_time']['type'];
 
 				// Setup MySQL timestamp for which entries are older than
-				$older_than = date( 'Y-m-d H:i:s', strtotime( 'midnight -'. $expiration_time ) );
+				$older_than = date( 'Y-m-d H:i:s', strtotime( '-'. $expiration_time ) );
 				
 				// Setup empty array of entries to delete
 				$entry_ids = array();

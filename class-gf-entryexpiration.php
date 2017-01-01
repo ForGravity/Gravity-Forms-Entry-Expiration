@@ -9,16 +9,7 @@ GFForms::include_addon_framework();
  * @author    Travis Lopes
  * @copyright Copyright (c) 2016, Travis Lopes
  */
-class GFEntryExpiration extends GFAddOn {
-
-	/**
-	 * Contains an instance of this class, if available.
-	 *
-	 * @since  1.0
-	 * @access private
-	 * @var    object $_instance If available, contains an instance of this class.
-	 */
-	private static $_instance = null;
+class GF_Entry_Expiration extends GFAddOn {
 
 	/**
 	 * Defines the version of Gravity Forms Entry Expiration.
@@ -93,13 +84,13 @@ class GFEntryExpiration extends GFAddOn {
 	protected $_short_title = 'Entry Expiration';
 
 	/**
-	 * Defines the expiration time types.
+	 * Contains an instance of this class, if available.
 	 *
 	 * @since  1.0
-	 * @access protected
-	 * @var    array $expiration_time_types Expiration time types.
+	 * @access private
+	 * @var    object $_instance If available, contains an instance of this class.
 	 */
-	protected $expiration_time_types = array( 'hours', 'days', 'weeks', 'months' );
+	private static $_instance = null;
 
 	/**
 	 * Get instance of this class.
@@ -121,108 +112,104 @@ class GFEntryExpiration extends GFAddOn {
 	}
 
 	/**
-	 * Register needed hooks.
+	 * Register needed pre-initialization hooks.
 	 *
-	 * @since  1.0
+	 * @since  2.0
 	 * @access public
 	 */
-	public function init() {
+	public function pre_init() {
 
-		parent::init();
+		parent::pre_init();
 
-		add_filter( 'gform_form_settings', array( $this, 'add_form_setting' ), 10, 2 );
-		add_filter( 'gform_pre_form_settings_save', array( $this, 'save_form_setting' ) );
+		add_filter( 'cron_schedules', array( $this, 'add_cron_schedule' ) );
+
+		/**
+		 * Define recurrence for Entry Expiration cron event.
+		 *
+		 * @param string $recurrence How often Entry Expiration cron event should run.
+		 */
+		$recurrence = apply_filters( 'gf_entryexpiration_recurrence', 'fifteen_minutes' );
+
+		if ( ! wp_next_scheduled( 'gf_entryexpiration_maybe_expire' ) ) {
+			$scheduled = wp_schedule_event( strtotime( 'midnight'), $recurrence, 'gf_entryexpiration_maybe_expire' );
+		}
+
+		add_action( 'gf_entryexpiration_maybe_expire', array( $this, 'maybe_run_expiration' ) );
 
 	}
 
-
-
-
-
-	// # PLUGIN SETTINGS -----------------------------------------------------------------------------------------------
-
 	/**
-	 * Setup plugin settings fields.
+	 * Enqueue needed stylesheets.
 	 *
 	 * @since  1.0
 	 * @access public
 	 *
 	 * @return array
 	 */
-	public function plugin_settings_fields() {
+	public function styles() {
 
-		return array(
+		$styles = array(
 			array(
-				'title'       => '',
-				'description' => '<p>' . esc_html__( 'Gravity Forms Entry Expiration reviews your forms every hour. If the form is selected for entry expiration, any entries older than the timeframe below will be deleted.', 'gravityformsentryexpiration' ) . '</p>',
-				'fields'      => array(
-					array(
-						'name'          => 'gf_entryexpiration_expire_time',
-						'label'         => __( 'Delete Entries After', 'gravityformsentryexpiration' ),
-						'type'          => 'expiration_time',
-						'class'         => 'small',
-						'default_value' => array(
-							'amount' =>	 30,
-							'type'   => 'days',
-						),
-					),
-					array(
-						'type'     => 'save',
-						'messages' => array(
-							'success' => __( 'Settings have been saved.', 'gravityformsentryexpiration' ),
-						),
-					),
-				),
+				'handle'  => $this->_slug . '_form_settings',
+				'src'     => $this->get_base_url() . '/css/form_settings.css',
+				'version' => $this->_version,
+				'enqueue' => array( array( 'admin_page' => array( 'form_settings' ) ) ),
 			),
 		);
 
+		return array_merge( parent::styles(), $styles );
+
 	}
 
+
+
+
+
+	// # SETUP ---------------------------------------------------------------------------------------------------------
+
 	/**
-	 * Entry Expiration time settings field.
+	 * Add quarter-hourly cron schedule.
 	 *
-	 * @since  1.0
+	 * @since  2.0
 	 * @access public
-	 * @param  array $field
-	 * @param  bool  $echo (default: true)
 	 *
-	 * @return string $html
+	 * @param array $schedules An array of non-default cron schedules.
+	 *
+	 * @return array
 	 */
-	public function settings_expiration_time( $field, $echo = true ) {
+	public function add_cron_schedule( $schedules = array() ) {
 
-		// Initialize return HTML string.
-		$html = '';
-
-		// Initialize amount and type fields.
-		$amount_field = $type_field = $field;
-
-		// Setup amount field attributes.
-		$amount_field['name']       .= '[amount]';
-		$amount_field['input_type']  = 'number';
-
-		// Prepare type choices.
-		$type_choices = array();
-		foreach ( $this->expiration_time_types as $type ) {
-			$type_choices[] = array(
-				'label' => esc_html( $type ),
-				'value' => esc_html( $type ),
+		// Add fifteen minutes.
+		if ( ! isset( $schedules['fifteen_minutes'] ) ) {
+			$schedules['fifteen_minutes'] = array(
+				'interval' => 15 * MINUTE_IN_SECONDS,
+				'display'  => esc_html__( 'Every Fifteen Minutes', 'gravity-forms-entry-expiration' ),
 			);
 		}
 
-		// Setup type field attributes.
-		$type_field['name']    .= '[type]';
-		$type_field['choices']  = $type_choices;
+		return $schedules;
 
-		// Display amount and type fields.
-		$html .= $this->settings_text( $amount_field, false );
-		$html .= $this->settings_select( $type_field, false );
+	}
 
-		// If field ouput should be echoed, echo it.
-		if ( $echo ) {
-			echo $html;
-		}
 
-		return $html;
+
+
+
+	// # UNINSTALL -----------------------------------------------------------------------------------------------------
+
+	/**
+	 * Remove cron event.
+	 *
+	 * @since  2.0
+	 * @access public
+	 *
+	 * @param array $schedules An array of non-default cron schedules.
+	 *
+	 * @return array
+	 */
+	public function uninstall( $schedules = array() ) {
+
+		wp_clear_scheduled_hook( 'gf_entryexpiration_maybe_expire' );
 
 	}
 
@@ -233,85 +220,235 @@ class GFEntryExpiration extends GFAddOn {
 	// # FORM SETTINGS -------------------------------------------------------------------------------------------------
 
 	/**
-	 * Add Entry Expiration form settings.
+	 * Setup fields for form settings.
 	 *
-	 * @since  1.0
+	 * @since  2.0
 	 * @access public
-	 * @param  array $settings Form settings.
-	 * @param  array $form Current form object.
 	 *
-	 * @return array $settings
+	 * @param array $form The current form object.
+	 *
+	 * @return array
 	 */
-	public function add_form_setting( $settings, $form ) {
+	public function form_settings_fields( $form ) {
 
-		$settings['Form Options']['gf_entryexpiration_include']  = '<tr>';
-		$settings['Form Options']['gf_entryexpiration_include'] .= '<th>';
-		$settings['Form Options']['gf_entryexpiration_include'] .= '<label for="gf_entryexpiration_include">'. esc_html__( 'Entry Expiration', 'gravityformsentryexpiration' ) . '</label>';
-		$settings['Form Options']['gf_entryexpiration_include'] .= '<a href="#" onclick="return false;" class="gf_tooltip tooltip tooltip_form_honeypot" title="'. esc_html__( '<h6>Include Entries In Deletion</h6> Selecting this checkbox will include this form\'s entries in being deleted when all old entries are deleted.', 'gravityformsentryexpiration' ) . '"><i class="fa fa-question-circle"></i></a>';
-		$settings['Form Options']['gf_entryexpiration_include'] .= '</th>';
-		$settings['Form Options']['gf_entryexpiration_include'] .= '<td>';
-		$settings['Form Options']['gf_entryexpiration_include'] .= '<input type="checkbox" id="gf_entryexpiration_include" name="gf_entryexpiration_include" value="1" '. checked( '1', rgar( $form, 'gf_entryexpiration_include' ), false ) .' />';
-		$settings['Form Options']['gf_entryexpiration_include'] .= '<label for="gf_entryexpiration_include">'. esc_html__( 'Include entries for expiration', 'gravityformsentryexpiration' ) . '</label>';
-		$settings['Form Options']['gf_entryexpiration_include'] .= '</td>';
-		$settings['Form Options']['gf_entryexpiration_include'] .= '</tr>';
-
-		return $settings;
+		return array(
+			array(
+				'fields' => array(
+					array(
+						'name'       => 'deletionEnable',
+						'label'      => esc_html__( 'Enable Expiration', 'gravity-forms-entry-expiration' ),
+						'type'       => 'checkbox',
+						'onclick'    => "jQuery( this ).parents( 'form' ).submit()",
+						'choices'    => array(
+							array(
+								'name'  => 'deletionEnable',
+								'label' => esc_html__( 'Automatically delete form entries on a defined schedule', 'gravity-forms-entry-expiration' ),
+							),
+						),
+					),
+					array(
+						'name'       => 'deletionDate',
+						'label'      => esc_html__( 'Delete entries older than', 'gravity-forms-entry-expiration' ),
+						'type'       => 'text_select',
+						'required'   => true,
+						'dependency' => array( 'field' => 'deletionEnable', 'values' => array( '1' ) ),
+						'text'       => array(
+							'name'        => 'deletionDate[number]',
+							'class'       => 'small',
+							'input_type'  => 'number',
+							'after_input' => ' ',
+						),
+						'select'     => array(
+							'name'    => 'deletionDate[unit]',
+							'choices' => array(
+								array( 'label' => 'minutes', 'value' => esc_html__( 'minutes', 'gravity-forms-entry-expiration' ) ),
+								array( 'label' => 'hours',   'value' => esc_html__( 'hours', 'gravity-forms-entry-expiration' ) ),
+								array( 'label' => 'days',    'value' => esc_html__( 'days', 'gravity-forms-entry-expiration' ) ),
+								array( 'label' => 'weeks',   'value' => esc_html__( 'weeks', 'gravity-forms-entry-expiration' ) ),
+								array( 'label' => 'months',  'value' => esc_html__( 'months', 'gravity-forms-entry-expiration' ) ),
+								array( 'label' => 'years',   'value' => esc_html__( 'years', 'gravity-forms-entry-expiration' ) ),
+							),
+						),
+					),
+					array(
+						'name'       => 'deletionRunTime',
+						'label'      => esc_html__( 'Run deletion every', 'gravity-forms-entry-expiration' ),
+						'type'       => 'text_select',
+						'required'   => true,
+						'dependency' => array( 'field' => 'deletionEnable', 'values' => array( '1' ) ),
+						'text'       => array(
+							'name'        => 'deletionRunTime[number]',
+							'class'       => 'small',
+							'input_type'  => 'number',
+							'after_input' => ' ',
+						),
+						'select'     => array(
+							'name'    => 'deletionRunTime[unit]',
+							'choices' => array(
+								array( 'label' => 'hours', 'value' => esc_html__( 'hours', 'gravity-forms-entry-expiration' ) ),
+								array( 'label' => 'days',  'value' => esc_html__( 'days', 'gravity-forms-entry-expiration' ) ),
+							),
+						),
+					),
+				),
+			),
+			array(
+				'fields' => array(
+					array(
+						'type'  => 'save',
+						'messages' => array(
+							'error'   => esc_html__( 'There was an error while saving the Entry Expiration settings. Please review the errors below and try again.', 'gravity-forms-entry-expiration' ),
+							'success' => esc_html__( 'Entry Expiration settings updated.', 'gravity-forms-entry-expiration' ),
+						),
+					),
+				),
+			),
+		);
 
 	}
 
 	/**
-	 * Save Entry Expiration form settings.
+	 * Render a select settings field.
 	 *
-	 * @since  1.0
+	 * @since  2.0
 	 * @access public
-	 * @param  array $form Current form object.
 	 *
-	 * @return array $form
+	 * @param array $field Field settings.
+	 * @param bool  $echo  Display field. Defaults to true.
+	 *
+	 * @uses GFAddOn::field_failed_validation()
+	 * @uses GFAddOn::get_error_icon()
+	 * @uses GFAddOn::get_field_attributes()
+	 * @uses GFAddOn::get_select_options()
+	 * @uses GFAddOn::get_setting()
+	 *
+	 * @return string
 	 */
-	public function save_form_setting( $form ) {
+	public function settings_select( $field, $echo = true ) {
 
-		$form['gf_entryexpiration_include'] = sanitize_text_field( rgpost( 'gf_entryexpiration_include' ) );
-		return $form;
+		// Get after select value.
+		$after_select = rgar( $field, 'after_select' );
+
+		// Remove after select property.
+		unset( $field['after_select'] );
+
+		// Get select field markup.
+		$html = parent::settings_select( $field, false );
+
+		// Add after select.
+		if ( ! rgblank( $after_select ) ) {
+			$html .= ' ' . $after_select;
+		}
+
+		if ( $echo ) {
+			echo $html;
+		}
+
+		return $html;
 
 	}
 
+	/**
+	 * Render a text and select settings field.
+	 *
+	 * @since  2.0
+	 * @access public
+	 *
+	 * @param array $field Field settings.
+	 * @param bool  $echo  Display field. Defaults to true.
+	 *
+	 * @return string
+	 */
+	public function settings_text_select( $field, $echo = true ) {
 
+		// Initialize return HTML.
+		$html = '';
 
+		// Duplicate fields.
+		$select_field = $text_field = $field;
 
+		// Merge properties.
+		$text_field   = array_merge( $text_field, $text_field['text'] );
+		$select_field = array_merge( $select_field, $select_field['select'] );
 
-	// # ENTRY DELETION ------------------------------------------------------------------------------------------------
+		unset( $text_field['text'], $select_field['text'], $text_field['select'], $select_field['select'] );
+
+		$html .= $this->settings_text( $text_field, false );
+		$html .= $this->settings_select( $select_field, false );
+
+		if ( $this->field_failed_validation( $field ) ) {
+			$html .= $this->get_error_icon( $field );
+		}
+
+		if ( $echo ) {
+			echo $html;
+		}
+
+		return $html;
+
+	}
 
 	/**
-	 * Delete old entries.
+	 * Validates a text and select settings field.
 	 *
-	 * @since  1.0
+	 * @since  2.0
 	 * @access public
+	 *
+	 * @param array $field    Field settings.
+	 * @param array $settings Submitted settings values.
 	 */
-	public function delete_old_entries() {
+	public function validate_text_select_settings( $field, $settings ) {
 
-		// Get plugin settings.
-		$settings = gf_entryexpiration()->get_plugin_settings();
+		// Convert text field name.
+		$text_field_name = str_replace( array( '[', ']' ), array( '/', '' ), $field['text']['name'] );
 
-		// If plugin has not been configured yet, do not delete any entries.
-		if ( ! rgar( $settings, 'gf_entryexpiration_expire_time' ) ) {
-			$this->log_debug( __METHOD__ . '(): Skipping entry deletion because plugin is not configured.' );
+		// Get text field value.
+		$text_field_value = rgars( $settings, $text_field_name );
+
+		// If text field is empty and field is required, set error.
+		if ( rgblank( $text_field_value ) && rgar( $field, 'required' ) ) {
+			$this->set_field_error( $field, esc_html__( 'This field is required.', 'gravity-forms-entry-expiration' ) );
 			return;
 		}
 
-		// Get expiration amount and type.
-		$expiration_time_amount = sanitize_text_field( $settings['gf_entryexpiration_expire_time']['amount'] );
-		$expiration_time_type   = sanitize_text_field( $settings['gf_entryexpiration_expire_time']['type'] );
-
-		// Validate expiration time type.
-		if ( ! in_array( $expiration_time_type, $this->expiration_time_types ) ) {
-			$expiration_time_type = $this->expiration_time_types[0];
+		// If text field is not numeric, set error.
+		if ( ! rgblank( $text_field_value ) && ! ctype_digit( $text_field_value ) ) {
+			$this->set_field_error( $field, esc_html__( 'You must use a whole number.', 'gravity-forms-entry-expiration' ) );
+			return;
 		}
 
-		// Create expiration time string.
-		$expiration_time = $expiration_time_amount . ' ' . $expiration_time_type;
+	}
 
-		// Setup MySQL timestamp for which entries are older than.
-		$older_than = date( 'Y-m-d H:i:s', strtotime( '-'. $expiration_time ) );
+	/**
+	 * Define the title for the form settings page.
+	 *
+	 * @since  2.0
+	 * @access public
+	 *
+	 * @return string
+	 */
+	public function form_settings_page_title() {
+
+		return esc_html__( 'Entry Expiration Settings', 'gravity-forms-entry-expiration' );
+
+	}
+
+
+
+
+
+	// # ENTRY EXPIRATION ----------------------------------------------------------------------------------------------
+
+	/**
+	 * Run Entry Expiration on forms that pass expiration conditions.
+	 *
+	 * @since  2.0
+	 * @access public
+	 *
+	 * @uses GFAPI::get_forms()
+	 * @uses GF_Entry_Expiration::maybe_run_deletion()
+	 */
+	public function maybe_run_expiration() {
 
 		// Get forms.
 		$forms = GFAPI::get_forms();
@@ -319,68 +456,159 @@ class GFEntryExpiration extends GFAddOn {
 		// Loop through forms.
 		foreach ( $forms as $form ) {
 
-			// If entry expiration is not enabled for form, skip it.
-			if ( ! rgar( $form, 'gf_entryexpiration_include' ) ) {
-				$this->log_debug( __METHOD__ . "(): Skipping entry deletion for form #{$form['id']} because it is not enabled." );
-				continue;
-			}
+			// Get Entry Expiration settings.
+			$settings = rgar( $form, $this->_slug );
 
-			/**
-			 * Filter the entry expiration time.
-			 *
-			 * @since 1.2.3
-			 *
-			 * @param string $older_than Current entry expiration time.
-			 * @param array  $form Form object.
-			 */
-			$form_older_than = gf_apply_filters( array( 'gf_entryexpiration_older_than', $form['id'] ), $older_than, $form );
-
-			/**
-			 * Set the payment status when searching for expired entries.
-			 *
-			 * @since 1.1
-			 *
-			 * @param string null Payment status.
-			 * @param array  $form Form object.
-			 */
-			$payment_status = gf_apply_filters( array( 'gf_entryexpiration_payment', $form['id'] ), null, $form );
-
-			// Log the entry search.
-			$this->log_debug( __METHOD__ . "(): Searching entries for form #{$form['id']} that were created before {$form_older_than}." );
-
-			// Get entry IDs for form that match search criteria.
-			$entry_ids = GFFormsModel::get_lead_ids(
-				$form['id'], // $form_id
-				'', // $search
-				null, // $star
-				null, // $read
-				null, // $start_date
-				$form_older_than, // $end_date
-				null, // $status
-				$payment_status // $payment_status
-			);
-
-			/**
-			 * Set the entry deletion limit to avoid long execution times.
-			 *
-			 * @since 1.1
-			 *
-			 * @param int 1000 Entry deletion limit.
-			 */
-			$deletion_limit = apply_filters( 'gf_entryexpiration_limit', 1000 );
-
-			// Reduce entry IDs to entry deletion limit.
-			$entry_ids = array_splice( $entry_ids, 0, $deletion_limit );
-
-			// If entries were found, delete them.
-			if ( ! empty( $entry_ids ) ) {
-				$this->log_debug( __METHOD__ . "(): Deleting entries for form #{$form['id']}: " . implode( ', ', $entry_ids ) );
-				GFFormsModel::delete_leads( $entry_ids );
-			} else {
-				$this->log_debug( __METHOD__ . "(): No entries were found for form #{$form['id']}." );
+			// If deletion is enabled, run deletion.
+			if ( rgar( $settings, 'deletionEnable' ) ) {
+				$this->maybe_run_deletion( $form, $settings );
 			}
 
 		}
+
+	}
+
+	/**
+	 * Delete entries if form pass conditions.
+	 *
+	 * @since  1.0
+	 * @access public
+	 *
+	 * @param array $form     The form object.
+	 * @param array $settings Entry Expiration settings.
+	 *
+	 * @uses GFAPI::count_entries()
+	 * @uses GF_Entry_Expiration::delete_form_entries()
+	 * @uses GF_Entry_Expiration::get_search_criteria()
+	 */
+	public function maybe_run_deletion( $form, $settings ) {
+
+		// Get Entry Expiration transient for deletion.
+		$transient_exists = get_transient( $this->_slug . '_' . $form['id'] );
+
+		// If transient exists, skip form.
+		if ( '1' === $transient_exists ) {
+			$this->log_debug( __METHOD__ . '(): Skipping deletion for form #' . $form['id'] . ' because it is not due to be run yet.' );
+			return;
+		}
+
+		// Get search criteria for form.
+		$search_critera = $this->get_search_criteria( $form, $settings, 'deletion' );
+
+		// Get entry found for search criteria.
+		$found_entries = GFAPI::count_entries( $form['id'], $search_critera );
+
+		// If no entries were found, exit.
+		if ( ! $found_entries ) {
+			$this->log_debug( __METHOD__ . '(): Not deleting entries for form #' . $form['id'] . ' because no entries were found matching the search criteria.' );
+			return;
+		}
+
+		// Delete form entries.
+		$this->delete_form_entries( $form, $settings );
+
+		// Define next run time.
+		$next_run_time = 'hours' === $settings['deletionRunTime']['unit'] ? ( $settings['deletionRunTime']['number'] * HOUR_IN_SECONDS ) : ( $settings['deletionRunTime']['number'] * DAY_IN_SECONDS );
+
+		// Set transient.
+		set_transient( $this->_slug . '_' . $form['id'], '1', $next_run_time );
+	}
+
+	/**
+	 * Delete form entries.
+	 *
+	 * @since  2.0
+	 * @access public
+	 *
+	 * @param array $form     The form object.
+	 * @param array $settings Entry Expiration settings.
+	 *
+	 * @uses GFAPI::get_entries()
+	 * @uses GFAPI::delete_entry()
+	 * @uses GF_Entry_Expiration::get_search_criteria()
+	 */
+	public function delete_form_entries( $form, $settings ) {
+
+		// Prepare search critera.
+		$search_critera = $this->get_search_criteria( $settings, $form );
+
+		// Prepare paging criteria.
+		$paging = array(
+			'offset'    => 0,
+			'page_size' => 50,
+		);
+
+		// Get total entry count.
+		$found_entries = GFAPI::count_entries( $form['id'], $search_critera );
+
+		// Set entries processed count.
+		$entries_processed = 0;
+
+		// Loop until all entries have been processed.
+		while ( $entries_processed < $found_entries ) {
+
+			// Get entries.
+			$entries = GFAPI::get_entries( $form['id'], $search_critera, null, $paging );
+
+			// Loop through entries.
+			foreach ( $entries as $entry ) {
+
+				// Delete entry.
+				GFAPI::delete_entry( $entry['id'] );
+
+				// Increase entries processed count.
+				$entries_processed++;
+
+			}
+
+			// Increase offset.
+			$paging['offset'] += $paging['page_size'];
+
+		}
+
+	}
+
+	/**
+	 * Get Entry Expiration search criteria for form.
+	 *
+	 * @since  2.0
+	 * @access public
+	 *
+	 * @param array  $form     The form object.
+	 * @param array  $settings Entry Expiration settings.
+	 *
+	 * @return array
+	 */
+	public function get_search_criteria( $form, $settings ) {
+
+		// Initialize search criteria.
+		$search_critera = array(
+			'start_date'     => date( 'Y-m-d H:i:s', 0 ),
+			'end_date'       => date( 'Y-m-d H:i:s', strtotime( '-' . $settings[ $type . 'Date' ]['number'] . ' ' . $settings[ $type . 'Date' ]['unit'] ) ),
+			'payment_status' => null,
+		);
+
+		/**
+		 * Filter the entry expiration time.
+		 *
+		 * @since 1.2.3
+		 *
+		 * @param string $older_than Current entry expiration time.
+		 * @param array  $form Form object.
+		 */
+		$search_critera['end_date'] = gf_apply_filters( array( 'gf_entryexpiration_older_than', $form['id'] ), $search_critera['end_date'], $form );
+
+		/**
+		 * Set the payment status when searching for expired entries.
+		 *
+		 * @since 1.1
+		 *
+		 * @param string null Payment status.
+		 * @param array  $form Form object.
+		 */
+		$search_critera['payment_status'] = gf_apply_filters( array( 'gf_entryexpiration_payment', $form['id'] ), $search_critera['payment_status'], $form );
+
+		return $search_critera;
 
 	}
 
@@ -395,7 +623,14 @@ class GFEntryExpiration extends GFAddOn {
 	 *
 	 * @since  1.1.0
 	 * @access public
+	 *
 	 * @param  string $previous_version Version number the plugin is upgrading from.
+	 *
+	 * @uses GFAddOn::get_plugin_settings()
+	 * @uses GFAddOn::save_form_settings()
+	 * @uses GFAddOn::update_plugin_settings()
+	 * @uses GFAPI::get_forms()
+	 * @uses GFAPI::update_form()
 	 */
 	public function upgrade( $previous_version ) {
 
@@ -445,6 +680,55 @@ class GFEntryExpiration extends GFAddOn {
 
 			// Save settings.
 			$this->update_plugin_settings( $settings );
+
+		}
+
+		// Upgrade: 2.0
+		if ( ! empty( $previous_version ) && version_compare( $previous_version, '2.0', '<' ) ) {
+
+			// Remove old cron hook.
+			wp_clear_scheduled_hook( 'gf_entryexpiration_delete_old_entries' );
+
+			// Get plugin settings.
+			$plugin_settings = $this->get_plugin_settings();
+
+			// Get forms.
+			$forms = GFAPI::get_forms();
+
+			// Loop through forms.
+			foreach ( $forms as $form ) {
+
+				// If form is not included in Entry Expiration, skip it.
+				if ( ! rgar( $form, 'gf_entryexpiration_include' ) ) {
+					continue;
+				}
+
+				// Prepare form settings.
+				$form_settings = array(
+					'deletionEnable'  => '1',
+					'deletionDate'    => array(
+						'number' => rgars( $plugin_settings, 'gf_entryexpiration_expire_time/amount' ),
+						'unit'   => rgars( $plugin_settings, 'gf_entryexpiration_expire_time/type' ),
+					),
+					'deletionRunTime' => array(
+						'number' => 1,
+						'unit'   => 'hours',
+					),
+				);
+
+				// Save form settings.
+				$this->save_form_settings( $form, $form_settings );
+
+				// Remove old setting.
+				unset( $form['gf_entryexpiration_include'] );
+
+				// Save form.
+				GFAPI::save_form( $form );
+
+			}
+
+			// Clear plugin settings.
+			$this->update_plugin_settings( array() );
 
 		}
 

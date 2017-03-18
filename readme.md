@@ -1,5 +1,5 @@
 # Gravity Forms Entry Expiration
-**Contributors:** travislopes
+**Contributors:** travislopes, forgravity
 
 **Requires at least:** 3.9.2
 

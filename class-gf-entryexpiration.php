@@ -723,7 +723,7 @@ class GF_Entry_Expiration extends GFAddOn {
 				unset( $form['gf_entryexpiration_include'] );
 
 				// Save form.
-				GFAPI::save_form( $form );
+				GFAPI::update_form( $form );
 
 			}
 

@@ -493,7 +493,7 @@ class GF_Entry_Expiration extends GFAddOn {
 		}
 
 		// Get search criteria for form.
-		$search_critera = $this->get_search_criteria( $form, $settings, 'deletion' );
+		$search_critera = $this->get_search_criteria( $form, $settings );
 
 		// Get entry found for search criteria.
 		$found_entries = GFAPI::count_entries( $form['id'], $search_critera );
@@ -508,10 +508,12 @@ class GF_Entry_Expiration extends GFAddOn {
 		$this->delete_form_entries( $form, $settings );
 
 		// Define next run time.
-		$next_run_time = 'hours' === $settings['deletionRunTime']['unit'] ? ( $settings['deletionRunTime']['number'] * HOUR_IN_SECONDS ) : ( $settings['deletionRunTime']['number'] * DAY_IN_SECONDS );
+		$next_run_time  = 'hours' === $settings['deletionRunTime']['unit'] ? ( $settings['deletionRunTime']['number'] * HOUR_IN_SECONDS ) : ( $settings['deletionRunTime']['number'] * DAY_IN_SECONDS );
+		$next_run_time -= 5;
 
 		// Set transient.
 		set_transient( $this->_slug . '_' . $form['id'], '1', $next_run_time );
+
 	}
 
 	/**
@@ -584,7 +586,7 @@ class GF_Entry_Expiration extends GFAddOn {
 		// Initialize search criteria.
 		$search_critera = array(
 			'start_date'     => date( 'Y-m-d H:i:s', 0 ),
-			'end_date'       => date( 'Y-m-d H:i:s', strtotime( '-' . $settings[ $type . 'Date' ]['number'] . ' ' . $settings[ $type . 'Date' ]['unit'] ) ),
+			'end_date'       => date( 'Y-m-d H:i:s', strtotime( '-' . $settings['deletionDate']['number'] . ' ' . $settings['deletionDate']['unit'] ) ),
 			'payment_status' => null,
 		);
 

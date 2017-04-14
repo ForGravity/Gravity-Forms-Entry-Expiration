@@ -492,24 +492,34 @@ class GF_Entry_Expiration extends GFAddOn {
 			return;
 		}
 
+		// Define next run time.
+		$next_run_time  = 'hours' === $settings['deletionRunTime']['unit'] ? ( $settings['deletionRunTime']['number'] * HOUR_IN_SECONDS ) : ( $settings['deletionRunTime']['number'] * DAY_IN_SECONDS );
+		$next_run_time -= 5;
+
 		// Get search criteria for form.
 		$search_critera = $this->get_search_criteria( $form, $settings );
 
-		// Get entry found for search criteria.
+		// Log the search criteria.
+		$this->log_debug( __METHOD__ . '(): Search criteria for form #' . $form['id'] . ': ' . print_r( $search_criteria, true ) );
+
+		// Get entries found for search criteria.
 		$found_entries = GFAPI::count_entries( $form['id'], $search_critera );
 
 		// If no entries were found, exit.
 		if ( ! $found_entries ) {
+
+			// Log that no entries were found.
 			$this->log_debug( __METHOD__ . '(): Not deleting entries for form #' . $form['id'] . ' because no entries were found matching the search criteria.' );
+
+			// Set transient.
+			set_transient( $this->_slug . '_' . $form['id'], '1', $next_run_time );
+
 			return;
+
 		}
 
 		// Delete form entries.
 		$this->delete_form_entries( $form, $settings );
-
-		// Define next run time.
-		$next_run_time  = 'hours' === $settings['deletionRunTime']['unit'] ? ( $settings['deletionRunTime']['number'] * HOUR_IN_SECONDS ) : ( $settings['deletionRunTime']['number'] * DAY_IN_SECONDS );
-		$next_run_time -= 5;
 
 		// Set transient.
 		set_transient( $this->_slug . '_' . $form['id'], '1', $next_run_time );
@@ -549,8 +559,17 @@ class GF_Entry_Expiration extends GFAddOn {
 		// Loop until all entries have been processed.
 		while ( $entries_processed < $found_entries ) {
 
+			// Log the page number.
+			$this->log_debug( __METHOD__ . '(): Starting deletion of page ' . ( round( $entries_processed / $paging['page_size'] ) + 1 ) . ' of ' . ( round( $found_entries / $paging['page_size'] ) ) );
+
 			// Get entries.
 			$entries = GFAPI::get_entries( $form['id'], $search_critera, null, $paging );
+
+			// If no more entries were found, break.
+			if ( empty( $entries ) ) {
+				$this->log_debug( __METHOD__ . '(): No entries were found for this page.' );
+				break;
+			}
 
 			// Loop through entries.
 			foreach ( $entries as $entry ) {
@@ -567,6 +586,9 @@ class GF_Entry_Expiration extends GFAddOn {
 			$paging['offset'] += $paging['page_size'];
 
 		}
+
+		// Log that deletion has been completed.
+		$this->log_debug( __METHOD__ . '(): Deletion completed.' );
 
 	}
 

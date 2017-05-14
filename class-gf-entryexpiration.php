@@ -497,7 +497,7 @@ class GF_Entry_Expiration extends GFAddOn {
 		$next_run_time -= 5;
 
 		// Get search criteria for form.
-		$search_critera = $this->get_search_criteria( $form, $settings );
+		$search_critera = $this->get_search_criteria( $settings, $form );
 
 		// Log the search criteria.
 		$this->log_debug( __METHOD__ . '(): Search criteria for form #' . $form['id'] . ': ' . print_r( $search_criteria, true ) );
@@ -603,7 +603,7 @@ class GF_Entry_Expiration extends GFAddOn {
 	 *
 	 * @return array
 	 */
-	public function get_search_criteria( $form, $settings ) {
+	public function get_search_criteria( $settings, $form ) {
 
 		// Initialize search criteria.
 		$search_critera = array(

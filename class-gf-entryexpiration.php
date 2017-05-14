@@ -493,8 +493,7 @@ class GF_Entry_Expiration extends GFAddOn {
 		}
 
 		// Define next run time.
-		$next_run_time  = 'hours' === $settings['deletionRunTime']['unit'] ? ( $settings['deletionRunTime']['number'] * HOUR_IN_SECONDS ) : ( $settings['deletionRunTime']['number'] * DAY_IN_SECONDS );
-		$next_run_time -= 5;
+		$next_run_time = $this->prepare_next_run_time( $settings );
 
 		// Get search criteria for form.
 		$search_critera = $this->get_search_criteria( $settings, $form );
@@ -633,6 +632,49 @@ class GF_Entry_Expiration extends GFAddOn {
 		$search_critera['payment_status'] = gf_apply_filters( array( 'gf_entryexpiration_payment', $form['id'] ), $search_critera['payment_status'], $form );
 
 		return $search_critera;
+
+	}
+
+	/**
+	 * Prepare the next time Entry Expiration should run.
+	 *
+	 * @since  2.0.3
+	 * @access public
+	 *
+	 * @param array $settings Entry Expiration settings.
+	 *
+	 * @return int
+	 */
+	public function prepare_next_run_time( $settings ) {
+
+		// Get run time number.
+		$number = $settings['deletionRunTime']['number'];
+
+		// Prepare run time based on unit.
+		switch ( $settings['deletionRunTime']['unit'] ) {
+
+			case 'days':
+				$next_run_time = $number * DAY_IN_SECONDS;
+				break;
+
+			case 'hours':
+				$next_run_time = $number * HOUR_IN_SECONDS;
+				break;
+
+			case 'months':
+				$next_run_time = $number * MONTH_IN_SECONDS;
+				break;
+
+			case 'weeks':
+				$next_run_time = $number * WEEK_IN_SECONDS;
+				break;
+
+		}
+
+		// Adjust run time by five seconds.
+		$next_run_time -= 5;
+
+		return $next_run_time;
 
 	}
 

@@ -93,6 +93,42 @@ class GF_Entry_Expiration extends GFAddOn {
 	private static $_instance = null;
 
 	/**
+	 * Defines the capability needed to access the Add-On settings page.
+	 *
+	 * @since  2.0.4
+	 * @access protected
+	 * @var    string $_capabilities_settings_page The capability needed to access the Add-On settings page.
+	 */
+	protected $_capabilities_settings_page = 'forgravity_entryexpiration';
+
+	/**
+	 * Defines the capability needed to access the Add-On form settings page.
+	 *
+	 * @since  2.0.4
+	 * @access protected
+	 * @var    string $_capabilities_form_settings The capability needed to access the Add-On form settings page.
+	 */
+	protected $_capabilities_form_settings = 'forgravity_entryexpiration';
+
+	/**
+	 * Defines the capability needed to uninstall the Add-On.
+	 *
+	 * @since  2.0.4
+	 * @access protected
+	 * @var    string $_capabilities_uninstall The capability needed to uninstall the Add-On.
+	 */
+	protected $_capabilities_uninstall = 'forgravity_entryexpiration_uninstall';
+
+	/**
+	 * Defines the capabilities needed for Entry Expiration.
+	 *
+	 * @since  2.0.4
+	 * @access protected
+	 * @var    array $_capabilities The capabilities needed for the Add-On
+	 */
+	protected $_capabilities = array( 'forgravity_entryexpiration', 'forgravity_entryexpiration_uninstall' );
+
+	/**
 	 * Get instance of this class.
 	 *
 	 * @since  1.0

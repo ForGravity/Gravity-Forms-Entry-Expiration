@@ -532,13 +532,13 @@ class GF_Entry_Expiration extends GFAddOn {
 		$next_run_time = $this->prepare_next_run_time( $settings );
 
 		// Get search criteria for form.
-		$search_critera = $this->get_search_criteria( $settings, $form );
+		$search_criteria = $this->get_search_criteria( $settings, $form );
 
 		// Log the search criteria.
 		$this->log_debug( __METHOD__ . '(): Search criteria for form #' . $form['id'] . ': ' . print_r( $search_criteria, true ) );
 
 		// Get entries found for search criteria.
-		$found_entries = GFAPI::count_entries( $form['id'], $search_critera );
+		$found_entries = GFAPI::count_entries( $form['id'], $search_criteria );
 
 		// If no entries were found, exit.
 		if ( ! $found_entries ) {

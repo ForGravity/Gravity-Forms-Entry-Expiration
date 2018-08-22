@@ -609,7 +609,7 @@ class GF_Entry_Expiration extends GFAddOn {
 			// Loop through entries.
 			foreach ( $entries as $entry ) {
 				
-				//Call action on each entry
+				//Call action for each entry.
 				do_action( 'gf_delete_expired_entry', $entry, $form, $settings );
 				
 				// Delete entry.

@@ -172,6 +172,8 @@ class GF_Entry_Expiration extends GFAddOn {
 
 		add_action( 'gf_entryexpiration_maybe_expire', array( $this, 'maybe_run_expiration' ) );
 
+		add_action( 'admin_init', array( $this, 'maybe_display_upgrade_message' ) );
+
 	}
 
 	/**
@@ -227,6 +229,43 @@ class GF_Entry_Expiration extends GFAddOn {
 
 	}
 
+	/**
+	 * Display upgrade message.
+	 *
+	 * @since 2.1
+	 */
+	public function maybe_display_upgrade_message() {
+
+		// If message has already been displayed, exit.
+		if ( get_option( 'gf_entryexpiration_message_displayed', false ) ) {
+			return;
+		}
+
+		// Get lifetime processed entries.
+		$lifetime_processed = get_option( 'gf_entryexpiration_lifetime_processed', 0 );
+
+		// If we have not yet processed 100 entries, exit.
+		if ( $lifetime_processed < 100 ) {
+			return;
+		}
+
+		// Round processed entries.
+		$lifetime_processed = ceil( $lifetime_processed / 100 ) * 100;
+
+		// Prepare message.
+		$message = sprintf(
+			'Entry Expiration has <strong>removed over %d entries!</strong><br /><a href="%s">Upgrade to Entry Automation</a> to delete entries based off conditional logic, delete only specific fields from an entry and automatically export entries!',
+			$lifetime_processed,
+			'https://forgravity.com/plugins/entry-automation/?utm_source=wordpress&utm_medium=alert&utm_campaign=entry_expiration'
+		);
+
+		// Display message.
+		GFCommon::add_dismissible_message( $message, 'gf_entryexpiration_upgrade_message', 'success', 'update_options', true );
+
+		// Set flag that message was displayed.
+		update_option( 'gf_entryexpiration_message_displayed', true );
+
+	}
 
 
 
@@ -400,14 +439,13 @@ class GF_Entry_Expiration extends GFAddOn {
 		// Initialize return HTML.
 		$html = '';
 
-		// Duplicate fields.
-		$select_field = $text_field = $field;
+		// Prepare text field.
+		$text_field   = $field['text'];
+		$text_field['type'] = 'text';
 
-		// Merge properties.
-		$text_field   = array_merge( $text_field, $text_field['text'] );
-		$select_field = array_merge( $select_field, $select_field['select'] );
-
-		unset( $text_field['text'], $select_field['text'], $text_field['select'], $select_field['select'] );
+		// Prepare select field.
+		$select_field         = $field['select'];
+		$select_field['type'] = 'select';
 
 		$html .= $this->settings_text( $text_field, false );
 		$html .= $this->settings_select( $select_field, false );
@@ -621,6 +659,11 @@ class GF_Entry_Expiration extends GFAddOn {
 			$paging['offset'] += $paging['page_size'];
 
 		}
+
+		// Add to total processed.
+		$lifetime_processed = get_option( 'gf_entryexpiration_lifetime_processed', 0 );
+		$lifetime_processed += $entries_processed;
+		update_option( 'gf_entryexpiration_lifetime_processed', $lifetime_processed );
 
 		// Log that deletion has been completed.
 		$this->log_debug( __METHOD__ . '(): Deletion completed.' );

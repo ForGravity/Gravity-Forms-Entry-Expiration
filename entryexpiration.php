@@ -48,8 +48,8 @@ class GF_EntryExpiration_Bootstrap {
  *
  * @see    GF_Entry_Expiration::get_instance()
  *
- * @return object GF_Entry_Expiration
+ * @return GF_Entry_Expiration|false
  */
 function gf_entryexpiration() {
-	return GF_Entry_Expiration::get_instance();
+	return class_exists( 'GF_Entry_Expiration' ) ? GF_Entry_Expiration::get_instance() : false;
 }

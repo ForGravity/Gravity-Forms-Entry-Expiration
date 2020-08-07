@@ -11,6 +11,7 @@ This WordPress plugin allows you to automatically delete Gravity Forms entries o
 ### Changelog
 * Version 2.1 (2020-08-07)
 	* Added capabilities.
+	* Added support for Gravity Forms 2.5.
 	* Updated installation instructions.
 	* Fixed fatal error during 2.0 upgrade process.
     * Fixed PHP notices.

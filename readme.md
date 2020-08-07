@@ -1,49 +1,42 @@
 # Gravity Forms Entry Expiration
-**Contributors:** travislopes, forgravity
+**Contributors:** forgravity, travislopes
 
 **Requires at least:** 3.9.2
 
-**Tested up to:** 4.7.5
+**Tested up to:** 5.5.0
 
 ### Description
 This WordPress plugin allows you to automatically delete Gravity Forms entries older than a defined timeframe. After activating the plugin, set the oldest age for an entry on the Entry Expiration Settings page inside of Gravity Forms. At midnight, the plugin will delete all entries older than the time you set. Only forms set to be included in the entry expiration will have their entries deleted. You can include a form in the entry expiration process by selecting the "Include in entry expiration" option under Form Settings.
 
 ### Changelog
-* v2.0.5
-    * Fix PHP notices.
-* v2.0.4
+* Version 2.1 (2020-08-07)
 	* Added capabilities.
 	* Updated installation instructions.
-* v2.0.3
-	* Fixed search criteria not correctly preparing in certain scenarios.
-* v2.0.2
-	* Fixed search criteria not correctly preparing the search end date.
-* v2.0.1
 	* Fixed fatal error during 2.0 upgrade process.
-* v2.0.0
-	* Added expiration time and recurrence at the form level.
-	* Rewrote expiration procedure to be more efficient.
-* v1.2.3
+    * Fixed PHP notices.
+	* Fixed search criteria not correctly preparing in certain scenarios.
+	* Fixed search criteria not correctly preparing the search end date.
+* Version 2.0
 	* Added additional logging
+	* Added expiration time and recurrence at the form level.
 	* Added filter for setting entry expiration time for each form
-* v1.2.2
-	* Changed plugin loading method
-* v1.2.1
 	* Adjusted entry older than date to not be relative to midnight
-* v1.2
+	* Changed plugin loading method.
+	* Rewrote expiration procedure to be more efficient.
+* Version 1.2
 	* Fixed update routine to not automatically enable forms for processing if running a fresh install
 	* Changed expiration time setting to allow choosing between hours, days, weeks and months
-* v1.1
+* Version 1.1
 	* Switched forms from being able to be excluded to having to include them for processing
 	* Deletion cron now runs hourly instead of daily
 	* Cron now only deletes 1000 entries at a time to prevent long execution times
 	* Added filters for: payment status, number of entries to be processed at a time
-* v1.0
+* Version 1.0
 	* Initial release
 
 ### Installation
 #### Requirements
-* WordPress version 3.9.2 and later (tested at 4.7.5)
+* WordPress version 3.9.2 and later (tested at 5.5.0)
 * Gravity Forms 1.8.17 and later
 
 #### Installation

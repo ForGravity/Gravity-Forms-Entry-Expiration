@@ -3,14 +3,14 @@
 Plugin Name: Entry Expiration for Gravity Forms
 Plugin URI: https://travislop.es/plugins/gravity-forms-entry-expiration/
 Description: Provides a simple way to remove old entries in Gravity Forms.
-Version: 2.1
+Version: 2.2
 Author: ForGravity
 Author URI: https://forgravity.com
 Text Domain: gravityformsentryexpiration
 Domain Path: /languages
  **/
 
-define( 'GF_ENTRYEXPIRATION_VERSION', '2.1' );
+define( 'GF_ENTRYEXPIRATION_VERSION', '2.2' );
 
 // If Gravity Forms is loaded, bootstrap the Entry Expiration Add-On.
 add_action( 'gform_loaded', array( 'GF_EntryExpiration_Bootstrap', 'load' ), 5 );

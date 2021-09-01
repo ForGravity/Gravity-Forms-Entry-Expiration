@@ -685,8 +685,8 @@ class GF_Entry_Expiration extends GFAddOn {
 
 		// Initialize search criteria.
 		$search_critera = array(
-			'start_date'     => date( 'Y-m-d H:i:s', 0 ),
-			'end_date'       => date( 'Y-m-d H:i:s', strtotime( '-' . $settings['deletionDate']['number'] . ' ' . $settings['deletionDate']['unit'] ) ),
+			'start_date'     => wp_date( 'Y-m-d H:i:s', 0 ),
+			'end_date'       => wp_date( 'Y-m-d H:i:s', strtotime( '-' . $settings['deletionDate']['number'] . ' ' . $settings['deletionDate']['unit'] ) ),
 			'payment_status' => null,
 		);
 

@@ -6,8 +6,7 @@ Description: Provides a simple way to remove old entries in Gravity Forms.
 Version: 2.2
 Author: ForGravity
 Author URI: https://forgravity.com
-Text Domain: gravityformsentryexpiration
-Domain Path: /languages
+Text Domain: gravity-forms-entry-expiration
  **/
 
 define( 'GF_ENTRYEXPIRATION_VERSION', '2.2' );

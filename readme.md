@@ -9,6 +9,8 @@
 This WordPress plugin allows you to automatically delete Gravity Forms entries older than a defined timeframe. After activating the plugin, set the oldest age for an entry on the Entry Expiration Settings page inside of Gravity Forms. At midnight, the plugin will delete all entries older than the time you set. Only forms set to be included in the entry expiration will have their entries deleted. You can include a form in the entry expiration process by selecting the "Include in entry expiration" option under Form Settings.
 
 ### Changelog
+* Version 2.2 (2021-09-02)
+	* Fixed entries not deleting on schedule when server and WordPress timezones do not match.
 * Version 2.1 (2020-08-07)
 	* Added capabilities.
 	* Added support for Gravity Forms 2.5.

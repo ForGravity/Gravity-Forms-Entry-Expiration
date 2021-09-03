@@ -615,7 +615,7 @@ class GF_Entry_Expiration extends GFAddOn {
 	public function delete_form_entries( $form, $settings ) {
 
 		// Prepare search critera.
-		$search_critera = $this->get_search_criteria( $settings, $form );
+		$search_criteria = $this->get_search_criteria( $settings, $form );
 
 		// Prepare paging criteria.
 		$paging = array(
@@ -624,7 +624,7 @@ class GF_Entry_Expiration extends GFAddOn {
 		);
 
 		// Get total entry count.
-		$found_entries = GFAPI::count_entries( $form['id'], $search_critera );
+		$found_entries = GFAPI::count_entries( $form['id'], $search_criteria );
 
 		// Set entries processed count.
 		$entries_processed = 0;
@@ -636,7 +636,7 @@ class GF_Entry_Expiration extends GFAddOn {
 			$this->log_debug( __METHOD__ . '(): Starting deletion of page ' . ( round( $entries_processed / $paging['page_size'] ) + 1 ) . ' of ' . ( round( $found_entries / $paging['page_size'] ) ) );
 
 			// Get entries.
-			$entries = GFAPI::get_entries( $form['id'], $search_critera, null, $paging );
+			$entries = GFAPI::get_entries( $form['id'], $search_criteria, null, $paging );
 
 			// If no more entries were found, break.
 			if ( empty( $entries ) ) {
@@ -684,9 +684,9 @@ class GF_Entry_Expiration extends GFAddOn {
 	public function get_search_criteria( $settings, $form ) {
 
 		// Initialize search criteria.
-		$search_critera = array(
-			'start_date'     => date( 'Y-m-d H:i:s', 0 ),
-			'end_date'       => date( 'Y-m-d H:i:s', strtotime( '-' . $settings['deletionDate']['number'] . ' ' . $settings['deletionDate']['unit'] ) ),
+		$search_criteria = array(
+			'start_date'     => wp_date( 'Y-m-d H:i:s', 0 ),
+			'end_date'       => wp_date( 'Y-m-d H:i:s', strtotime( '-' . $settings['deletionDate']['number'] . ' ' . $settings['deletionDate']['unit'] ) ),
 			'payment_status' => null,
 		);
 
@@ -698,7 +698,7 @@ class GF_Entry_Expiration extends GFAddOn {
 		 * @param string $older_than Current entry expiration time.
 		 * @param array  $form Form object.
 		 */
-		$search_critera['end_date'] = gf_apply_filters( array( 'gf_entryexpiration_older_than', $form['id'] ), $search_critera['end_date'], $form );
+		$search_criteria['end_date'] = gf_apply_filters( array( 'gf_entryexpiration_older_than', $form['id'] ), $search_criteria['end_date'], $form );
 
 		/**
 		 * Set the payment status when searching for expired entries.
@@ -708,9 +708,9 @@ class GF_Entry_Expiration extends GFAddOn {
 		 * @param string null Payment status.
 		 * @param array  $form Form object.
 		 */
-		$search_critera['payment_status'] = gf_apply_filters( array( 'gf_entryexpiration_payment', $form['id'] ), $search_critera['payment_status'], $form );
+		$search_criteria['payment_status'] = gf_apply_filters( array( 'gf_entryexpiration_payment', $form['id'] ), $search_criteria['payment_status'], $form );
 
-		return $search_critera;
+		return $search_criteria;
 
 	}
 

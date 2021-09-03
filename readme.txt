@@ -1,7 +1,7 @@
 === Entry Expiration for Gravity Forms ===
 Contributors: forgravity, travislopes
 Tags: gravity forms, entry, expiration
-Requires at least: 3.9.2
+Requires at least: 5.3.0
 Tested up to: 5.8.0
 Stable tag: 4.7.3
 Requires PHP: 5.3
@@ -23,7 +23,7 @@ Entry Expiration for Gravity Forms allows you to automatically delete Gravity Fo
 
 == Installation ==
 = Requirements =
-* WordPress version 3.9.2 and later (tested at 5.8.0)
+* WordPress version 5.3.0 and later (tested at 5.8.0)
 * Gravity Forms 1.8.17 and later
 
 = Installation =
@@ -34,6 +34,8 @@ Entry Expiration for Gravity Forms allows you to automatically delete Gravity Fo
 1. Define how often you want entries to be deleted and the minimum age required for entries to be deleted.
 
 == Changelog ==
+= Version 2.2 (2021-09-02) =
+* Fixed entries not deleting on schedule when server and WordPress timezones do not match.
 = Version 2.1 (2020-08-07) =
 * Added capabilities.
 * Added support for Gravity Forms 2.5.

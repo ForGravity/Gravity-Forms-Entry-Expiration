@@ -2,7 +2,7 @@
 Contributors: forgravity, travislopes
 Tags: gravity forms, entry, expiration
 Requires at least: 5.3.0
-Tested up to: 5.8.0
+Tested up to: 6.3.0
 Stable tag: 4.7.3
 Requires PHP: 5.3
 
@@ -10,11 +10,11 @@ Automatically remove old form entries on a custom, defined schedule
 
 == Description ==
 
-> #### [Entry Automation for Gravity Forms](https://forgravity.com/plugins/entry-automation/?utm_source=wordpress&utm_medium=readme&utm_campaign=readme) makes entry deletion more powerful and allows you to export your entries too!
+> #### [Entry Automation for Gravity Forms](https://cosmicgiant.com/plugins/entry-automation/?utm_source=wordpress&utm_medium=readme&utm_campaign=readme) makes entry deletion more powerful and allows you to export your entries too!
 >
 > Entry Expiration started out as a simple tool to automatically remove your old form entries. But what if you need more control over when entries are deleted? Want to apply conditional logic to target specific entries? Or maybe delete specific field values rather than the whole entry? Need to generate an export file before getting rid of those entries?
 >
-> [Check out Entry Automation](https://forgravity.com/plugins/entry-automation/?utm_source=wordpress&utm_medium=readme&utm_campaign=readme) today!
+> [Check out Entry Automation](https://cosmicgiant.com/plugins/entry-automation/?utm_source=wordpress&utm_medium=readme&utm_campaign=readme) today!
 
 
 When integrating Gravity Forms with a third-party service, it's often not necessary to keep entries around after a short period of time as you already have the data imported elsewhere.
@@ -34,6 +34,9 @@ Entry Expiration for Gravity Forms allows you to automatically delete Gravity Fo
 1. Define how often you want entries to be deleted and the minimum age required for entries to be deleted.
 
 == Changelog ==
+= Version 2.2.1 (2023-08-01) =
+- Updated references to ForGravity.
+- Updated WordPress tested up to version.
 = Version 2.2 (2021-09-02) =
 * Fixed entries not deleting on schedule when server and WordPress timezones do not match.
 = Version 2.1 (2020-08-07) =

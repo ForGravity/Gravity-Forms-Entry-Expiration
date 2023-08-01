@@ -256,7 +256,7 @@ class GF_Entry_Expiration extends GFAddOn {
 		$message = sprintf(
 			'Entry Expiration has <strong>removed over %d entries!</strong><br /><a href="%s">Upgrade to Entry Automation</a> to delete entries based off conditional logic, delete only specific fields from an entry and automatically export entries!',
 			$lifetime_processed,
-			'https://forgravity.com/plugins/entry-automation/?utm_source=wordpress&utm_medium=alert&utm_campaign=entry_expiration'
+			'https://cosmicgiant.com/plugins/entry-automation/?utm_source=wordpress&utm_medium=alert&utm_campaign=entry_expiration'
 		);
 
 		// Display message.
